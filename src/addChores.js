@@ -56,7 +56,7 @@ class AddChores extends React.Component {
     const {title, description, time} = this.state,
       {navigation} = this.props;
 
-    if (title !== '' && description !== '') {
+    if (title.trim() !== '' && description.trim() !== '') {
       let choresList = (await getItem('@chores')) || [],
         id = choresList.length + 1,
         chore = {
@@ -64,6 +64,7 @@ class AddChores extends React.Component {
           title,
           description,
           time,
+          done: false,
         };
       choresList.push(chore);
       await storeItem('@chores', choresList);
@@ -75,7 +76,7 @@ class AddChores extends React.Component {
   edit = async () => {
     const {title, description, time, editId} = this.state;
 
-    if (title !== '' && description !== '') {
+    if (title.trim() !== '' && description.trim() !== '') {
       let chores = await getItem('@chores');
       chores.map(chore => {
         if (chore.id === editId) {

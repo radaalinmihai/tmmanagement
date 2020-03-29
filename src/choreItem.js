@@ -21,7 +21,6 @@ class ChoreItem extends React.Component {
     const {width} = Dimensions.get('screen');
 
     this.state = {
-      time: '',
       leftButtonsWidth: width / 5,
       rightButtonsWidth: width / (5 / 2),
     };
@@ -100,18 +99,14 @@ class ChoreItem extends React.Component {
       toValue: this.state.leftButtonsWidth,
     }).start();
   };
-  componentDidMount = () =>
-    this.setState({
-      time: moment(this.props.item.time).format('HH:mm'),
-    });
   delete = async () => await this.props.deleteChore(this.props.item.id);
   edit = () => {
     this.resetPos();
     this.props.navigation.navigate('AddChores', {id: this.props.item.id});
-  }
+  };
   render() {
     const {item} = this.props,
-      {time, leftButtonsWidth, rightButtonsWidth} = this.state;
+      {leftButtonsWidth, rightButtonsWidth} = this.state;
     return (
       <View
         style={{
@@ -166,7 +161,7 @@ class ChoreItem extends React.Component {
                 </Text>
                 <Entypo name="dot-single" size={17} />
                 <Text style={{fontSize: 17, fontFamily: 'Roboto-Regular'}}>
-                  {time}
+                  {moment(this.props.item.time).format('HH:mm')}
                 </Text>
               </View>
               <Text
