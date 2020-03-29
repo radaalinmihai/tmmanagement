@@ -12,9 +12,13 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import {getItem, storeItem} from '../utils';
 import {RNToasty} from 'react-native-toasty';
 import moment from 'moment';
-import {LocalNotification} from './services/LocalPushController';
+import {
+  LocalNotification,
+  CancelNotification,
+} from './services/LocalPushController';
+import {withNavigation} from 'react-navigation';
 
-export default class AddChores extends React.Component {
+class AddChores extends React.Component {
   static navigationOptions = {
     title: null,
   };
@@ -23,20 +27,34 @@ export default class AddChores extends React.Component {
     title: '',
     description: '',
     show: false,
+    editId: this.props.navigation.getParam('id', 'NO-ID'),
   };
   showTimer = () => this.setState({show: true});
   setTime = (event, time) =>
     time !== undefined
       ? this.setState({
           time:
-            moment(time).diff(moment()) < 0
+            moment(time).diff(moment()) <= 0
               ? moment(time).add(1, 'day')
               : moment(time),
           show: false,
         })
       : undefined;
+  componentDidMount = async () => {
+    const {editId} = this.state;
+    if (editId !== 'NO-ID') {
+      const chores = await getItem('@chores'),
+        chore = chores.filter(chore => chore.id === editId);
+      this.setState({
+        title: chore[0].title,
+        description: chore[0].description,
+        time: moment(chore[0].time),
+      });
+    }
+  };
   save = async () => {
-    const {title, description, time} = this.state;
+    const {title, description, time} = this.state,
+      {navigation} = this.props;
 
     if (title !== '' && description !== '') {
       let choresList = (await getItem('@chores')) || [],
@@ -51,6 +69,25 @@ export default class AddChores extends React.Component {
       await storeItem('@chores', choresList);
       this.saveToast();
       this.setNotification(id);
+      navigation.goBack();
+    }
+  };
+  edit = async () => {
+    const {title, description, time, editId} = this.state;
+
+    if (title !== '' && description !== '') {
+      let chores = await getItem('@chores');
+      chores.map(chore => {
+        if (chore.id === editId) {
+          chore.title = title;
+          chore.description = description;
+          chore.time = time;
+        }
+      });
+      await storeItem('@chores', chores);
+      CancelNotification(editId);
+      this.editToast();
+      this.setNotification(editId);
       this.props.navigation.goBack();
     }
   };
@@ -69,9 +106,14 @@ export default class AddChores extends React.Component {
       title: 'Chore saved',
       duration: 0,
     });
+  editToast = () =>
+    RNToasty.Success({
+      title: 'Chore edited',
+      duration: 0,
+    });
   cancel = () => this.props.navigation.goBack();
   render() {
-    const {time, show, title, description} = this.state;
+    const {time, show, title, description, editId} = this.state;
     return (
       <KeyboardAvoidingView
         style={{
@@ -116,16 +158,18 @@ export default class AddChores extends React.Component {
               onChange={this.setTime}
             />
           )}
-          <View
-            style={styles.bottomButtonsWrapper}>
+          <View style={styles.bottomButtonsWrapper}>
             <TouchableNativeFeedback onPress={this.cancel}>
               <View style={styles.button}>
                 <Text style={styles.buttonText}>Cancel</Text>
               </View>
             </TouchableNativeFeedback>
-            <TouchableNativeFeedback onPress={this.save}>
+            <TouchableNativeFeedback
+              onPress={editId !== 'NO-ID' ? this.edit : this.save}>
               <View style={[styles.button, {backgroundColor: '#F85C50'}]}>
-                <Text style={styles.buttonText}>Save</Text>
+                <Text style={styles.buttonText}>
+                  {editId !== 'NO-ID' ? 'Edit' : 'Save'}
+                </Text>
               </View>
             </TouchableNativeFeedback>
           </View>
@@ -134,6 +178,8 @@ export default class AddChores extends React.Component {
     );
   }
 }
+
+export default withNavigation(AddChores);
 
 const styles = StyleSheet.create({
   input: {
@@ -144,7 +190,7 @@ const styles = StyleSheet.create({
   },
   textInput: {
     fontSize: 15,
-    fontFamily: 'Roboto-Regular'
+    fontFamily: 'Roboto-Regular',
   },
   button: {
     padding: 15,

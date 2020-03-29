@@ -1,5 +1,9 @@
 import React from 'react';
-import {createStackNavigator} from 'react-navigation-stack';
+import {
+  createStackNavigator,
+  TransitionSpecs,
+  HeaderStyleInterpolators,
+} from 'react-navigation-stack';
 import HomeScreen from './src/HomeScreen';
 import {createAppContainer} from 'react-navigation';
 import Header from './src/header';
@@ -17,6 +21,31 @@ const App = createStackNavigator(
   },
   {
     defaultNavigationOptions: {
+      initialRouteName: 'Your daily routine',
+      transitionSpec: {
+        open: TransitionSpecs.TransitionIOSSpec,
+        close: TransitionSpecs.TransitionIOSSpec,
+      },
+      cardStyleInterpolator: ({current, next, layouts}) => {
+        return {
+          cardStyle: {
+            transform: [
+              {
+                translateX: current.progress.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [layouts.screen.width, 0],
+                }),
+              },
+            ],
+          },
+          overlayStyle: {
+            opacity: current.progress.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0, 0.1],
+            }),
+          },
+        };
+      },
       header: ({scene, previous, navigation}) => {
         const {options} = scene.descriptor;
         const title =
@@ -33,7 +62,9 @@ const App = createStackNavigator(
             leftButton={
               previous ? (
                 <BackButton onPress={() => navigation.goBack()} />
-              ) : undefined
+              ) : (
+                undefined
+              )
             }
           />
         );

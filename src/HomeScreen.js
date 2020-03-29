@@ -27,13 +27,12 @@ export default class HomeScreen extends React.Component {
       duration: 0,
     });
   };
-  componentDidMount = async () => this.checkScreeState();
-  checkScreeState = () =>
+  componentDidMount = async () => this.checkScreenState();
+  checkScreenState = () =>
     this.props.navigation.addListener(
       'didFocus',
       async () => await this.getChores(),
     );
-  componentWillUnmount = () => this.checkScreeState().remove();
   render() {
     const {chores} = this.state;
     return (

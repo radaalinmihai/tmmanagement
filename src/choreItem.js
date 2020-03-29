@@ -12,8 +12,9 @@ import Entypo from 'react-native-vector-icons/Entypo';
 import MaterialCommunity from 'react-native-vector-icons/MaterialCommunityIcons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import moment from 'moment';
+import {withNavigation} from 'react-navigation';
 
-export default class ChoreItem extends React.Component {
+class ChoreItem extends React.Component {
   constructor(props) {
     super(props);
 
@@ -58,11 +59,6 @@ export default class ChoreItem extends React.Component {
       onPanResponderMove: Animated.event([null, {dx: this.item.x}]),
       onPanResponderRelease: (event, gestureState) => {
         this.item.flattenOffset();
-        console.log(
-          leftButtonsWidth / 3,
-          -rightButtonsWidth / 3,
-          gestureState.dx,
-        );
         if (gestureState.dx > leftButtonsWidth)
           this.changeSwipeDir(false, true);
         else if (gestureState.dx < -rightButtonsWidth)
@@ -72,25 +68,31 @@ export default class ChoreItem extends React.Component {
         if (this.swipedRight)
           Animated.spring(this.item.x, {
             toValue: leftButtonsWidth,
-            bounciness: 0
+            bounciness: 0,
           }).start();
         else if (this.swipedLeft)
           Animated.spring(this.item.x, {
             toValue: -rightButtonsWidth,
-            bounciness: 0
+            bounciness: 0,
           }).start();
         else
           Animated.spring(this.item.x, {
             toValue: 0,
-            bounciness: 0
+            bounciness: 0,
           }).start();
       },
     });
   }
+  resetPos = () => {
+    this.changeSwipeDir(false, false);
+    Animated.spring(this.item.x, {
+      toValue: 0,
+      bounciness: 0,
+    }).start();
+  };
   changeSwipeDir = (left, right) => {
     this.swipedLeft = left;
     this.swipedRight = right;
-    console.log(this.swipedLeft, this.swipedRight);
   };
   longPressShowLeft = () => {
     Vibration.vibrate(15);
@@ -103,10 +105,13 @@ export default class ChoreItem extends React.Component {
       time: moment(this.props.item.time).format('HH:mm'),
     });
   delete = async () => await this.props.deleteChore(this.props.item.id);
+  edit = () => {
+    this.resetPos();
+    this.props.navigation.navigate('AddChores', {id: this.props.item.id});
+  }
   render() {
     const {item} = this.props,
       {time, leftButtonsWidth, rightButtonsWidth} = this.state;
-    console.log(this.x);
     return (
       <View
         style={{
@@ -197,7 +202,7 @@ export default class ChoreItem extends React.Component {
               <Entypo name="check" size={38} color="white" />
             </View>
           </TouchableNativeFeedback>
-          <TouchableNativeFeedback onPress={() => console.log('hey')}>
+          <TouchableNativeFeedback onPress={this.edit}>
             <View
               style={{
                 backgroundColor: '#58595B',
@@ -214,3 +219,4 @@ export default class ChoreItem extends React.Component {
     );
   }
 }
+export default withNavigation(ChoreItem);
