@@ -22,6 +22,7 @@ const LocalNotification = (id, bigText, subText, message, date) => {
     subText,
     message,
     largeIcon: 'none',
+    smallIcon: 'ic_stat_tm',
     autoCancel: true,
     vibrate: true,
     vibration: 300,

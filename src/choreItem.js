@@ -28,6 +28,7 @@ class ChoreItem extends React.Component {
     const {leftButtonsWidth, rightButtonsWidth} = this.state;
 
     this.item = new Animated.ValueXY({x: 0, y: 0});
+    this.checked = new Animated.Value(0);
     this.left = this.item.x.interpolate({
       inputRange: [0, leftButtonsWidth],
       outputRange: [-leftButtonsWidth, 0],
@@ -42,6 +43,21 @@ class ChoreItem extends React.Component {
       inputRange: [-rightButtonsWidth, 0, leftButtonsWidth],
       outputRange: [-rightButtonsWidth, 0, leftButtonsWidth],
       extrapolate: 'clamp',
+    });
+
+    this.titleColor = this.checked.interpolate({
+      inputRange: [0, 1],
+      outputRange: ['black', 'white'],
+    });
+
+    this.descriptionColor = this.checked.interpolate({
+      inputRange: [0, 1],
+      outputRange: ['#939598', 'white'],
+    });
+
+    this.successColor = this.checked.interpolate({
+      inputRange: [0, 1],
+      outputRange: ['white', 'rgba(65, 182, 25, .6)'],
     });
 
     this.swipedRight = false;
@@ -99,6 +115,7 @@ class ChoreItem extends React.Component {
       toValue: this.state.leftButtonsWidth,
     }).start();
   };
+  changeColor = () => Animated.timing(this.checked, {toValue: 1}).start();
   delete = async () => await this.props.deleteChore(this.props.item.id);
   edit = () => {
     this.resetPos();
@@ -107,6 +124,7 @@ class ChoreItem extends React.Component {
   render() {
     const {item} = this.props,
       {leftButtonsWidth, rightButtonsWidth} = this.state;
+    const AnimatedEntypo = Animated.createAnimatedComponent(Entypo);
     return (
       <View
         style={{
@@ -143,6 +161,7 @@ class ChoreItem extends React.Component {
           style={{
             padding: 20,
             width: '100%',
+            backgroundColor: this.successColor,
             transform: [{translateX: this.x}],
           }}
           {...this.pan.panHandlers}>
@@ -151,28 +170,34 @@ class ChoreItem extends React.Component {
             onLongPress={this.longPressShowLeft}>
             <View>
               <View style={{flexDirection: 'row', alignItems: 'center'}}>
-                <Text
+                <Animated.Text
                   style={{
                     fontSize: 17,
                     fontFamily: 'Roboto-Regular',
                     letterSpacing: 1.3,
+                    color: this.titleColor,
                   }}>
                   {item.title}
-                </Text>
-                <Entypo name="dot-single" size={17} />
-                <Text style={{fontSize: 17, fontFamily: 'Roboto-Regular'}}>
+                </Animated.Text>
+                <AnimatedEntypo name="dot-single" size={17} style={{color: this.titleColor}} />
+                <Animated.Text
+                  style={{
+                    fontSize: 17,
+                    fontFamily: 'Roboto-Regular',
+                    color: this.titleColor,
+                  }}>
                   {moment(this.props.item.time).format('HH:mm')}
-                </Text>
+                </Animated.Text>
               </View>
-              <Text
+              <Animated.Text
                 style={{
                   fontFamily: 'Roboto-Italic',
                   fontSize: 16,
                   marginLeft: 3,
-                  color: '#939598',
+                  color: this.descriptionColor,
                 }}>
                 {item.description}
-              </Text>
+              </Animated.Text>
             </View>
           </TouchableNativeFeedback>
         </Animated.View>
@@ -185,7 +210,7 @@ class ChoreItem extends React.Component {
             top: 0,
             right: this.right,
           }}>
-          <TouchableNativeFeedback onPress={() => console.log('done')}>
+          <TouchableNativeFeedback onPress={this.changeColor}>
             <View
               style={{
                 backgroundColor: '#4BB462',

@@ -26,6 +26,9 @@ const App = createStackNavigator(
         open: TransitionSpecs.TransitionIOSSpec,
         close: TransitionSpecs.TransitionIOSSpec,
       },
+      cardStyle: {
+        backgroundColor: 'white'
+      },
       cardStyleInterpolator: ({current, next, layouts}) => {
         return {
           cardStyle: {
