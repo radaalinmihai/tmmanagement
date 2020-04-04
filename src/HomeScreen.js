@@ -9,14 +9,15 @@ import {CancelNotification} from './services/LocalPushController';
 export default class HomeScreen extends React.Component {
   state = {
     chores: [],
+    appState: AppState.currentState,
   };
   getChores = async () => {
     const chores = await getItem('@chores');
     if (chores !== null) this.setState({chores});
   };
-  deleteChore = async id => {
-    this.setState(prevState => ({
-      chores: prevState.chores.filter(item => item.id !== id),
+  deleteChore = async (id) => {
+    this.setState((prevState) => ({
+      chores: prevState.chores.filter((item) => item.id !== id),
     }));
 
     CancelNotification(id.toString());
@@ -27,23 +28,52 @@ export default class HomeScreen extends React.Component {
       duration: 0,
     });
   };
-  componentDidMount = async () => this.checkScreenState();
+  setDoneChore = async (id) => {
+    this.setState((prevState) => ({
+      chores: prevState.chores.map((chore) =>
+        chore.id === id ? {...chore, done: !chore.done} : chore,
+      ),
+    }));
+    await removeItem('@chores');
+    await storeItem('@chores', this.state.chores);
+    if (this.state.chores[id - 1].done)
+      RNToasty.Info({
+        title: 'Good job!',
+        duration: 0,
+      });
+    else
+      RNToasty.Warn({
+        title: "Well, that's bad..",
+        duration: 0,
+      });
+  };
+  componentDidMount = async () => {
+    AppState.addEventListener('change', (state) =>
+      this.setState({appState: state}),
+    );
+    this.checkScreenState();
+  };
   checkScreenState = () =>
     this.props.navigation.addListener(
       'didFocus',
       async () => await this.getChores(),
     );
   render() {
-    const {chores} = this.state;
+    const {chores, appState} = this.state;
+    console.log(appState);
     return (
       <React.Fragment>
         {chores.length > 0 ? (
           <FlatList
             data={chores}
             renderItem={({item}) => (
-              <ChoreItem deleteChore={this.deleteChore} item={item} />
+              <ChoreItem
+                deleteChore={this.deleteChore}
+                setDoneChore={this.setDoneChore}
+                item={item}
+              />
             )}
-            keyExtractor={item => item.id.toString()}
+            keyExtractor={(item) => item.id.toString()}
           />
         ) : (
           <NoChoresText />

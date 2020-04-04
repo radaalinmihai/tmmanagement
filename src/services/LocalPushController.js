@@ -3,13 +3,6 @@ import PushNotification from 'react-native-push-notification';
 PushNotification.configure({
   onNotification: async notification => {
     console.log(notification);
-    /* const chores = await getItem('@chores');
-    chores.map(chore => {
-      if(chore.id === notification.notificationId)
-        chore.time = moment(chore.time).add(1, 'minute');
-    });
-    await storeItem('@chores', chores);
-    notification.localNotificationSchedule(); */
   },
   popInitialNotification: true,
   requestPermissions: true,

@@ -2,7 +2,6 @@ import React from 'react';
 import {
   createStackNavigator,
   TransitionSpecs,
-  HeaderStyleInterpolators,
 } from 'react-navigation-stack';
 import HomeScreen from './src/HomeScreen';
 import {createAppContainer} from 'react-navigation';

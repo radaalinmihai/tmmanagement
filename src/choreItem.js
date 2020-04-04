@@ -115,7 +115,14 @@ class ChoreItem extends React.Component {
       toValue: this.state.leftButtonsWidth,
     }).start();
   };
-  changeColor = () => Animated.timing(this.checked, {toValue: 1}).start();
+  componentDidMount = () =>
+    this.props.item.done === true ? this.changeColor() : null;
+  done = async () => {
+    await this.props.setDoneChore(this.props.item.id);
+    this.resetPos();
+    this.changeColor();
+  };
+  changeColor = () => Animated.timing(this.checked, {toValue: this.props.item.done ? 1 : 0}).start();
   delete = async () => await this.props.deleteChore(this.props.item.id);
   edit = () => {
     this.resetPos();
@@ -179,7 +186,11 @@ class ChoreItem extends React.Component {
                   }}>
                   {item.title}
                 </Animated.Text>
-                <AnimatedEntypo name="dot-single" size={17} style={{color: this.titleColor}} />
+                <AnimatedEntypo
+                  name="dot-single"
+                  size={17}
+                  style={{color: this.titleColor}}
+                />
                 <Animated.Text
                   style={{
                     fontSize: 17,
@@ -210,16 +221,20 @@ class ChoreItem extends React.Component {
             top: 0,
             right: this.right,
           }}>
-          <TouchableNativeFeedback onPress={this.changeColor}>
+          <TouchableNativeFeedback onPress={this.done}>
             <View
               style={{
-                backgroundColor: '#4BB462',
+                backgroundColor: item.done ? '#EE3D48' : '#4bb462',
                 flex: 1,
                 justifyContent: 'center',
                 alignItems: 'center',
                 paddingHorizontal: 10,
               }}>
-              <Entypo name="check" size={38} color="white" />
+              {item.done ? (
+                <MaterialIcons name="close" size={38} color="white" />
+              ) : (
+                <Entypo name="check" size={38} color="white" />
+              )}
             </View>
           </TouchableNativeFeedback>
           <TouchableNativeFeedback onPress={this.edit}>
