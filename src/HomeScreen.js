@@ -47,7 +47,13 @@ export default class HomeScreen extends React.Component {
         duration: 0,
       });
   };
-  componentDidMount = () => this.checkScreenState();
+  componentDidMount = async () => {
+    this.checkScreenState();
+    const time = await getItem('@time');
+    const date = new Date();
+    moment().locale();
+    console.log(moment(time).get('D') !== moment().get('D'), moment(time), moment().format());
+  }
 
   checkScreenState = () =>
     this.props.navigation.addListener(

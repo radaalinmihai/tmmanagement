@@ -7,25 +7,34 @@ import moment from 'moment';
 
 BackgroundFetch.configure(
   {
-    minimumFetchInterval: 60,
+    minimumFetchInterval: 15,
+    forceAlarmManager: true,
     stopOnTerminate: false,
     startOnBoot: true,
     requiredNetworkType: BackgroundFetch.NETWORK_TYPE_NONE,
     enableHeadless: true,
   },
-  async () => MidnightCheck(),
+  async (taskId) => MidnightCheck(taskId),
   (error) => console.warn(error),
 );
 
-let MidnightCheck = async (event) => {
-  let taskId = event.taskId;
-  const chores = await getItem('@chores');
+let MidnightCheck = async (taskId) => {
+  console.log(taskId);
+  let chores = await getItem('@chores');
 
-  if (chores.length > 0) {
-    if (moment().diff(moment().endOf('day')) >= 0)
-      chores.map((chore) => (chore.done ? {...chore, done: false} : chore));
-    await removeItem('@chores');
-    await storeItem('@chores', chores);
+  if ((await getItem('@time')) === null) await storeItem('@time', moment());
+
+  if (chores !== null) {
+    let time = await getItem('@time');
+    console.log(time);
+    if (moment(time).get('D') !== moment().get('D')) {
+      console.log('A mers!!!!!!', moment());
+      for(let i = 0; i < chores.length; i++)
+        chores[i].done = false;
+      await removeItem('@time');
+      await removeItem('@chores');
+      await storeItem('@chores', chores);
+    }
   }
   console.log('Checked. Changes should have been made if it was the case');
   BackgroundFetch.finish(taskId);

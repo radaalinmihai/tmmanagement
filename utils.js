@@ -3,10 +3,10 @@ import AsyncStorage from '@react-native-community/async-storage';
 async function storeItem(name, item) {
   try {
     await AsyncStorage.setItem(name, JSON.stringify(item))
-      .then(res => {
+      .then((res) => {
         return res;
       })
-      .catch(err => console.warn(err));
+      .catch((err) => console.warn(err));
   } catch (err) {
     return err;
   }
