@@ -37,10 +37,5 @@ let MidnightCheck = async (taskId) => {
   BackgroundFetch.finish(taskId);
 };
 
-BackgroundFetch.scheduleTask({
-  taskId: 'midnightCheck',
-  forceAlarmManager: true,
-});
-
 BackgroundFetch.registerHeadlessTask(MidnightCheck);
 AppRegistry.registerComponent(appName, () => App);
