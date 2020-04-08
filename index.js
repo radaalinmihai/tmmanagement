@@ -7,7 +7,7 @@ import moment from 'moment';
 
 BackgroundFetch.configure(
   {
-    minimumFetchInterval: 15,
+    minimumFetchInterval: 120,
     forceAlarmManager: true,
     stopOnTerminate: false,
     startOnBoot: true,
@@ -19,16 +19,13 @@ BackgroundFetch.configure(
 );
 
 let MidnightCheck = async (taskId) => {
-  console.log(taskId);
   let chores = await getItem('@chores');
 
   if ((await getItem('@time')) === null) await storeItem('@time', moment());
 
   if (chores !== null) {
     let time = await getItem('@time');
-    console.log(time);
     if (moment(time).get('D') !== moment().get('D')) {
-      console.log('A mers!!!!!!', moment());
       for(let i = 0; i < chores.length; i++)
         chores[i].done = false;
       await removeItem('@time');
@@ -39,6 +36,11 @@ let MidnightCheck = async (taskId) => {
   console.log('Checked. Changes should have been made if it was the case');
   BackgroundFetch.finish(taskId);
 };
+
+BackgroundFetch.scheduleTask({
+  taskId: 'midnightCheck',
+  forceAlarmManager: true,
+});
 
 BackgroundFetch.registerHeadlessTask(MidnightCheck);
 AppRegistry.registerComponent(appName, () => App);
