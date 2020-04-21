@@ -1,5 +1,5 @@
 import React from 'react';
-import {FlatList} from 'react-native';
+import {FlatList, StyleSheet, View} from 'react-native';
 import NoChoresText from './noChoresText';
 import {getItem, storeItem, removeItem} from '../utils';
 import ChoreItem from './choreItem';
@@ -47,13 +47,8 @@ export default class HomeScreen extends React.Component {
         duration: 0,
       });
   };
-  componentDidMount = async () => {
+  componentDidMount = async () =>
     this.checkScreenState();
-    const time = await getItem('@time');
-    const date = new Date();
-    moment().locale();
-    console.log(moment(time).get('D') !== moment().get('D'), moment(time), moment().format());
-  }
 
   checkScreenState = () =>
     this.props.navigation.addListener(
@@ -83,3 +78,9 @@ export default class HomeScreen extends React.Component {
     );
   }
 }
+
+const styles = StyleSheet.create({
+  separator: {
+    ...StyleSheet.hairlineWidth
+  }
+});

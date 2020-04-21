@@ -2,256 +2,206 @@ import React from 'react';
 import {
   View,
   Text,
-  Animated,
-  PanResponder,
-  TouchableNativeFeedback,
   Dimensions,
-  Vibration,
+  StyleSheet,
+  TouchableNativeFeedback,
 } from 'react-native';
 import Entypo from 'react-native-vector-icons/Entypo';
 import MaterialCommunity from 'react-native-vector-icons/MaterialCommunityIcons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import moment from 'moment';
 import {withNavigation} from 'react-navigation';
+import {PanGestureHandler, State} from 'react-native-gesture-handler';
+import Animated, {
+  interpolate,
+  Extrapolate,
+  Value,
+  event,
+  block,
+  cond,
+  eq,
+  add,
+  set,
+  greaterOrEq,
+  Clock,
+  stopClock,
+  greaterThan,
+  and,
+  lessOrEq,
+  lessThan,
+} from 'react-native-reanimated';
+import runSpring from './reanimated/spring';
 
 class ChoreItem extends React.Component {
-  constructor(props) {
-    super(props);
-
-    const {width} = Dimensions.get('screen');
-
-    this.state = {
-      leftButtonsWidth: width / 5,
-      rightButtonsWidth: width / (5 / 2),
-    };
-
-    const {leftButtonsWidth, rightButtonsWidth} = this.state;
-
-    this.item = new Animated.ValueXY({x: 0, y: 0});
-    this.checked = new Animated.Value(0);
-    this.left = this.item.x.interpolate({
-      inputRange: [0, leftButtonsWidth],
-      outputRange: [-leftButtonsWidth, 0],
-      extrapolate: 'clamp',
-    });
-    this.right = this.item.x.interpolate({
-      inputRange: [-rightButtonsWidth, 0],
-      outputRange: [0, -rightButtonsWidth],
-      extrapolate: 'clamp',
-    });
-    this.x = this.item.x.interpolate({
-      inputRange: [-rightButtonsWidth, 0, leftButtonsWidth],
-      outputRange: [-rightButtonsWidth, 0, leftButtonsWidth],
-      extrapolate: 'clamp',
-    });
-
-    this.titleColor = this.checked.interpolate({
-      inputRange: [0, 1],
-      outputRange: ['black', 'white'],
-    });
-
-    this.descriptionColor = this.checked.interpolate({
-      inputRange: [0, 1],
-      outputRange: ['#939598', 'white'],
-    });
-
-    this.successColor = this.checked.interpolate({
-      inputRange: [0, 1],
-      outputRange: ['white', 'rgba(65, 182, 25, .6)'],
-    });
-
-    this.swipedRight = false;
-    this.swipedLeft = false;
-
-    this.pan = PanResponder.create({
-      onStartShouldSetPanResponder: (event, gestureState) =>
-        Math.abs(gestureState.dx) !== 0,
-      onMoveShouldSetPanResponder: (event, gestureState) =>
-        Math.abs(gestureState.dx) !== 0,
-      onPanResponderGrant: () => {
-        this.item.setOffset({x: this.item.x._value, y: this.item.y._value});
-      },
-      onPanResponderMove: Animated.event([null, {dx: this.item.x}]),
-      onPanResponderRelease: (event, gestureState) => {
-        this.item.flattenOffset();
-        if (gestureState.dx > leftButtonsWidth)
-          this.changeSwipeDir(false, true);
-        else if (gestureState.dx < -rightButtonsWidth)
-          this.changeSwipeDir(true, false);
-        else this.changeSwipeDir(false, false);
-
-        if (this.swipedRight)
-          Animated.spring(this.item.x, {
-            toValue: leftButtonsWidth,
-            bounciness: 0,
-          }).start();
-        else if (this.swipedLeft)
-          Animated.spring(this.item.x, {
-            toValue: -rightButtonsWidth,
-            bounciness: 0,
-          }).start();
-        else
-          Animated.spring(this.item.x, {
-            toValue: 0,
-            bounciness: 0,
-          }).start();
-      },
-    });
-  }
-  resetPos = () => {
-    this.changeSwipeDir(false, false);
-    Animated.spring(this.item.x, {
-      toValue: 0,
-      bounciness: 0,
-    }).start();
-  };
-  changeSwipeDir = (left, right) => {
-    this.swipedLeft = left;
-    this.swipedRight = right;
-  };
-  longPressShowLeft = () => {
-    Vibration.vibrate(15);
-    Animated.spring(this.item.x, {
-      toValue: this.state.leftButtonsWidth,
-    }).start();
-  };
-  componentDidMount = () =>
-    this.props.item.done === true ? this.changeColor() : null;
-  done = async () => {
-    await this.props.setDoneChore(this.props.item.id);
-    this.resetPos();
-    this.changeColor();
-  };
-  changeColor = () => Animated.timing(this.checked, {toValue: this.props.item.done ? 1 : 0}).start();
   delete = async () => await this.props.deleteChore(this.props.item.id);
   edit = () => {
     this.resetPos();
     this.props.navigation.navigate('AddChores', {id: this.props.item.id});
   };
+  width = Dimensions.get('window').width;
+  dragX = new Value(0);
+  offsetX = new Value(0);
+  swipeDir = new Value(-1);
+  clock = new Clock();
+  threshold = this.width / 2;
+  leftSide = interpolate(this.dragX, {
+    inputRange: [0, this.width],
+    outputRange: [-this.width, 0],
+    extrapolate: Extrapolate.CLAMP,
+  });
+  rightSide = interpolate(this.dragX, {
+    inputRange: [-this.width, 0],
+    outputRange: [0, this.width],
+    extrapolate: Extrapolate.CLAMP,
+  });
+  handleGesture = event([
+    {
+      nativeEvent: ({translationX: x, state}) =>
+        block([
+          cond(eq(state, State.ACTIVE), [
+            set(this.dragX, add(this.offsetX, x)),
+            stopClock(this.clock),
+          ]),
+          cond(eq(state, State.END), [
+            cond(
+              and(
+                greaterThan(this.dragX, 0),
+                greaterOrEq(this.dragX, this.threshold),
+              ),
+              set(this.swipeDir, 1),
+              cond(
+                and(
+                  lessThan(this.dragX, 0),
+                  lessOrEq(this.dragX, -this.threshold),
+                ),
+                set(this.swipeDir, 0),
+                set(this.swipeDir, -1),
+              ),
+            ),
+            cond(eq(this.swipeDir, -1), [
+              set(this.dragX, runSpring(this.clock, this.dragX, 0)),
+              set(this.offsetX, 0),
+            ]),
+            cond(eq(this.swipeDir, 1), [
+              set(this.dragX, runSpring(this.clock, this.dragX, this.width)),
+              set(this.offsetX, this.width),
+            ]),
+            cond(eq(this.swipeDir, 0), [
+              set(this.dragX, runSpring(this.clock, this.dragX, -this.width)),
+              set(this.offsetX, -this.width),
+            ]),
+          ]),
+        ]),
+    },
+  ]);
   render() {
     const {item} = this.props,
-      {leftButtonsWidth, rightButtonsWidth} = this.state;
-    const AnimatedEntypo = Animated.createAnimatedComponent(Entypo);
+      {width} = this;
     return (
-      <View
-        style={{
-          borderBottomWidth: 1,
-          borderBottomColor: '#D1D3D4',
-          flexDirection: 'row',
-        }}>
-        <Animated.View
-          style={{
-            position: 'absolute',
-            width: leftButtonsWidth,
-            height: '100%',
-            top: 0,
-            left: this.left,
-          }}>
-          <TouchableNativeFeedback onPress={this.delete}>
-            <View
-              style={{
-                backgroundColor: '#EE3D48',
-                flex: 1,
-                justifyContent: 'center',
-                alignItems: 'center',
-                paddingHorizontal: 10,
-              }}>
-              <MaterialCommunity
-                name="delete-forever"
-                size={38}
-                color="white"
-              />
-            </View>
-          </TouchableNativeFeedback>
-        </Animated.View>
-        <Animated.View
-          style={{
-            padding: 20,
-            width: '100%',
-            backgroundColor: this.successColor,
-            transform: [{translateX: this.x}],
-          }}
-          {...this.pan.panHandlers}>
-          <TouchableNativeFeedback
-            background={TouchableNativeFeedback.Ripple('transparent')}
-            onLongPress={this.longPressShowLeft}>
-            <View>
-              <View style={{flexDirection: 'row', alignItems: 'center'}}>
-                <Animated.Text
-                  style={{
-                    fontSize: 17,
-                    fontFamily: 'Roboto-Regular',
-                    letterSpacing: 1.3,
-                    color: this.titleColor,
-                  }}>
-                  {item.title}
-                </Animated.Text>
-                <AnimatedEntypo
-                  name="dot-single"
-                  size={17}
-                  style={{color: this.titleColor}}
+      <PanGestureHandler
+        onGestureEvent={this.handleGesture}
+        onHandlerStateChange={this.handleGesture}>
+        <Animated.View style={{flex: 1, flexDirection: 'row'}}>
+          <Animated.View
+            style={[styles.sides, {transform: [{translateX: this.leftSide}]}]}>
+            <TouchableNativeFeedback onPress={this.delete}>
+              <View style={styles.deleteButton}>
+                <MaterialCommunity
+                  name="delete-forever"
+                  size={38}
+                  color="white"
                 />
-                <Animated.Text
-                  style={{
-                    fontSize: 17,
-                    fontFamily: 'Roboto-Regular',
-                    color: this.titleColor,
-                  }}>
-                  {moment(this.props.item.time).format('HH:mm')}
-                </Animated.Text>
               </View>
-              <Animated.Text
+            </TouchableNativeFeedback>
+          </Animated.View>
+          <Animated.View
+            style={{
+              padding: 20,
+              flex: 1,
+              width,
+              transform: [{translateX: this.dragX}],
+            }}>
+            <View style={{flexDirection: 'row', alignItems: 'center'}}>
+              <Text
                 style={{
-                  fontFamily: 'Roboto-Italic',
-                  fontSize: 16,
-                  marginLeft: 3,
-                  color: this.descriptionColor,
+                  fontSize: 17,
+                  fontFamily: 'Roboto-Regular',
+                  letterSpacing: 1.3,
+                  color: 'black',
                 }}>
-                {item.description}
-              </Animated.Text>
+                {item.title}
+              </Text>
+              <Entypo name="dot-single" size={17} style={{color: 'black'}} />
+              <Text
+                style={{
+                  fontSize: 17,
+                  fontFamily: 'Roboto-Regular',
+                  color: 'black',
+                }}>
+                {moment(this.props.item.time).format('HH:mm')}
+              </Text>
             </View>
-          </TouchableNativeFeedback>
-        </Animated.View>
-        <Animated.View
-          style={{
-            position: 'absolute',
-            flexDirection: 'row',
-            width: rightButtonsWidth,
-            height: '100%',
-            top: 0,
-            right: this.right,
-          }}>
-          <TouchableNativeFeedback onPress={this.done}>
-            <View
+            <Text
               style={{
-                backgroundColor: item.done ? '#EE3D48' : '#4bb462',
-                flex: 1,
-                justifyContent: 'center',
-                alignItems: 'center',
-                paddingHorizontal: 10,
+                fontFamily: 'Roboto-Italic',
+                fontSize: 16,
+                marginLeft: 3,
+                color: '#939598',
               }}>
-              {item.done ? (
-                <MaterialIcons name="close" size={38} color="white" />
-              ) : (
-                <Entypo name="check" size={38} color="white" />
-              )}
-            </View>
-          </TouchableNativeFeedback>
-          <TouchableNativeFeedback onPress={this.edit}>
-            <View
-              style={{
-                backgroundColor: '#58595B',
-                flex: 1,
-                justifyContent: 'center',
-                alignItems: 'center',
-                paddingHorizontal: 10,
-              }}>
-              <MaterialIcons name="edit" size={38} color="white" />
-            </View>
-          </TouchableNativeFeedback>
+              {item.description}
+            </Text>
+          </Animated.View>
+          <Animated.View
+            style={[
+              styles.sides,
+              {
+                transform: [
+                  {
+                    translateX: this.rightSide,
+                  },
+                ],
+                flexDirection: 'row',
+              },
+            ]}>
+            <TouchableNativeFeedback>
+              <View
+                style={{
+                  flex: 1,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: '#35D073',
+                }}>
+                <MaterialIcons name="done-all" size={38} color="white" />
+              </View>
+            </TouchableNativeFeedback>
+            <TouchableNativeFeedback>
+              <View
+                style={{
+                  flex: 1,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: '#ebebeb',
+                }}>
+                <MaterialIcons name="edit" size={38} color="black" />
+              </View>
+            </TouchableNativeFeedback>
+          </Animated.View>
         </Animated.View>
-      </View>
+      </PanGestureHandler>
     );
   }
 }
 export default withNavigation(ChoreItem);
+
+const styles = StyleSheet.create({
+  sides: {
+    flex: 1,
+    ...StyleSheet.absoluteFill,
+  },
+  deleteButton: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EE3D48',
+  },
+});

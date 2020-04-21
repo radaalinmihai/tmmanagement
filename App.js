@@ -1,8 +1,5 @@
 import React from 'react';
-import {
-  createStackNavigator,
-  TransitionSpecs,
-} from 'react-navigation-stack';
+import {createStackNavigator, TransitionSpecs} from 'react-navigation-stack';
 import HomeScreen from './src/HomeScreen';
 import {createAppContainer} from 'react-navigation';
 import Header from './src/header';
@@ -26,7 +23,7 @@ const App = createStackNavigator(
         close: TransitionSpecs.TransitionIOSSpec,
       },
       cardStyle: {
-        backgroundColor: 'white'
+        backgroundColor: 'white',
       },
       cardStyleInterpolator: ({current, next, layouts}) => {
         return {
