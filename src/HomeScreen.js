@@ -5,7 +5,6 @@ import {getItem, storeItem, removeItem} from '../utils';
 import ChoreItem from './choreItem';
 import {RNToasty} from 'react-native-toasty';
 import {CancelNotification} from './services/LocalPushController';
-import moment from 'moment';
 
 export default class HomeScreen extends React.Component {
   state = {
@@ -15,9 +14,9 @@ export default class HomeScreen extends React.Component {
     const chores = await getItem('@chores');
     if (chores !== null) this.setState({chores});
   };
-  deleteChore = async (id) => {
-    this.setState((prevState) => ({
-      chores: prevState.chores.filter((item) => item.id !== id),
+  deleteChore = async id => {
+    this.setState(prevState => ({
+      chores: prevState.chores.filter(item => item.id !== id),
     }));
 
     CancelNotification(id.toString());
@@ -28,9 +27,9 @@ export default class HomeScreen extends React.Component {
       duration: 0,
     });
   };
-  setDoneChore = async (id) => {
-    this.setState((prevState) => ({
-      chores: prevState.chores.map((chore) =>
+  setDoneChore = async id => {
+    this.setState(prevState => ({
+      chores: prevState.chores.map(chore =>
         chore.id === id ? {...chore, done: !chore.done} : chore,
       ),
     }));
@@ -47,9 +46,15 @@ export default class HomeScreen extends React.Component {
         duration: 0,
       });
   };
-  componentDidMount = async () =>
-    this.checkScreenState();
-
+  componentDidMount = async () => this.checkScreenState();
+  renderItem = ({item}) => (
+    <ChoreItem
+      deleteChore={this.deleteChore}
+      setDoneChore={this.setDoneChore}
+      item={item}
+    />
+  );
+  itemSeparator = () => <View style={styles.separator} />;
   checkScreenState = () =>
     this.props.navigation.addListener(
       'didFocus',
@@ -58,29 +63,23 @@ export default class HomeScreen extends React.Component {
   render() {
     const {chores} = this.state;
     return (
-      <React.Fragment>
-        {chores.length > 0 ? (
-          <FlatList
-            data={chores}
-            renderItem={({item}) => (
-              <ChoreItem
-                deleteChore={this.deleteChore}
-                setDoneChore={this.setDoneChore}
-                item={item}
-              />
-            )}
-            keyExtractor={(item) => item.id.toString()}
-          />
-        ) : (
-          <NoChoresText />
-        )}
-      </React.Fragment>
+      <View style={{flex: 1, width: '100%', height: '100%'}}>
+        <FlatList
+          data={chores}
+          ItemSeparatorComponent={this.itemSeparator}
+          ListEmptyComponent={NoChoresText}
+          renderItem={this.renderItem}
+          keyExtractor={item => item.id.toString()}
+        />
+      </View>
     );
   }
 }
 
 const styles = StyleSheet.create({
   separator: {
-    ...StyleSheet.hairlineWidth
-  }
+    height: 0.5,
+    width: '100%',
+    backgroundColor: '#58595B',
+  },
 });
