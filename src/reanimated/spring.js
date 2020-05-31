@@ -7,6 +7,7 @@ import {
   cond,
   set,
   Value,
+  debug,
 } from 'react-native-reanimated';
 function runSpring(clock, value, dest) {
   const state = {

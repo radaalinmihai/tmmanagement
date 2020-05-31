@@ -28,16 +28,23 @@ import Animated, {
   lessOrEq,
   lessThan,
   call,
+  debug,
+  clockRunning,
+  spring,
+  SpringUtils,
 } from 'react-native-reanimated';
 import runSpring from './reanimated/spring';
 
 class ChoreItem extends React.Component {
-  state = {
-    edit: false,
-  };
   delete = async () => await this.props.deleteChore(this.props.item.id);
-  edit = (ceva) => {
-    this.resetPos();
+  edit = () => {
+    const config = SpringUtils.makeConfigFromBouncinessAndSpeed({
+      bounciness: 0,
+      speed: 12,
+      toValue: 0,
+      ...SpringUtils.makeDefaultConfig(),
+    });
+    spring(this.dragX, config).start();
     this.props.navigation.navigate('AddChores', {id: this.props.item.id});
   };
   width = Dimensions.get('window').width;
@@ -56,11 +63,6 @@ class ChoreItem extends React.Component {
     outputRange: [0, this.width],
     extrapolate: Extrapolate.CLAMP,
   });
-  resetPos = () =>
-    call([], () => {
-      set(this.dragX, runSpring(this.clock, this.dragX, 0));
-      set(this.offsetX, 0);
-    });
   handleGesture = event([
     {
       nativeEvent: ({translationX: x, state}) =>
@@ -103,7 +105,6 @@ class ChoreItem extends React.Component {
   ]);
   render() {
     const {item} = this.props,
-      {edit} = this.state,
       {width} = this;
     return (
       <View style={{flex: 1}}>
