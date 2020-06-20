@@ -37,7 +37,7 @@ import runSpring from './reanimated/spring';
 
 class ChoreItem extends React.Component {
   delete = async () => await this.props.deleteChore(this.props.item.id);
-  edit = () => {
+  resetPos = () => {
     const config = SpringUtils.makeConfigFromBouncinessAndSpeed({
       bounciness: 0,
       speed: 12,
@@ -45,6 +45,9 @@ class ChoreItem extends React.Component {
       ...SpringUtils.makeDefaultConfig(),
     });
     spring(this.dragX, config).start();
+  };
+  edit = () => {
+    this.resetPos();
     this.props.navigation.navigate('AddChores', {id: this.props.item.id});
   };
   width = Dimensions.get('window').width;
