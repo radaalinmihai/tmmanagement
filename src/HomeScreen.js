@@ -1,10 +1,11 @@
 import React from 'react';
-import {FlatList, StyleSheet, View} from 'react-native';
+import {StyleSheet, View} from 'react-native';
 import NoChoresText from './noChoresText';
 import {getItem, storeItem, removeItem} from '../utils';
 import ChoreItem from './choreItem';
 import {RNToasty} from 'react-native-toasty';
 import {CancelNotification} from './services/LocalPushController';
+import {FlatList} from 'react-native-gesture-handler';
 
 export default class HomeScreen extends React.Component {
   state = {
@@ -14,9 +15,9 @@ export default class HomeScreen extends React.Component {
     const chores = await getItem('@chores');
     if (chores !== null) this.setState({chores});
   };
-  deleteChore = async id => {
-    this.setState(prevState => ({
-      chores: prevState.chores.filter(item => item.id !== id),
+  deleteChore = async (id) => {
+    this.setState((prevState) => ({
+      chores: prevState.chores.filter((item) => item.id !== id),
     }));
 
     CancelNotification(id.toString());
@@ -27,9 +28,9 @@ export default class HomeScreen extends React.Component {
       duration: 0,
     });
   };
-  setDoneChore = async id => {
-    this.setState(prevState => ({
-      chores: prevState.chores.map(chore =>
+  setDoneChore = async (id) => {
+    this.setState((prevState) => ({
+      chores: prevState.chores.map((chore) =>
         chore.id === id ? {...chore, done: !chore.done} : chore,
       ),
     }));
@@ -63,22 +64,20 @@ export default class HomeScreen extends React.Component {
   render() {
     const {chores} = this.state;
     return (
-      <View style={{flex: 1, width: '100%', height: '100%'}}>
-        <FlatList
-          data={chores}
-          ItemSeparatorComponent={this.itemSeparator}
-          ListEmptyComponent={NoChoresText}
-          renderItem={this.renderItem}
-          keyExtractor={item => item.id.toString()}
-        />
-      </View>
+      <FlatList
+        data={chores}
+        ItemSeparatorComponent={this.itemSeparator}
+        ListEmptyComponent={NoChoresText}
+        renderItem={this.renderItem}
+        keyExtractor={(item) => item.id.toString()}
+      />
     );
   }
 }
 
 const styles = StyleSheet.create({
   separator: {
-    height: 0.5,
+    height: 1,
     width: '100%',
     backgroundColor: '#58595B',
   },

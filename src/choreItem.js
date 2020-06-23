@@ -27,15 +27,81 @@ import Animated, {
   and,
   lessOrEq,
   lessThan,
-  call,
-  debug,
-  clockRunning,
   spring,
   SpringUtils,
+  call,
 } from 'react-native-reanimated';
 import runSpring from './reanimated/spring';
 
 class ChoreItem extends React.Component {
+  constructor(props) {
+    super(props);
+    // Reanimated values for swipeable
+    this.done = new Value(0);
+    // Mda, deci tre sa astept sa scoata astia interpolateColors ca sa pot face o interpolare de culori
+    // Mda..
+    this.doneInter = interpolate(this.done, {
+      inputRange: [0, 1],
+      outputRange: ['rgb(255, 255, 255)', 'rgb(17, 99, 21)'],
+      extrapolate: Extrapolate.CLAMP,
+    });
+    this.width = Dimensions.get('window').width;
+    this.dragX = new Value(0);
+    this.offsetX = new Value(0);
+    this.swipeDir = new Value(-1);
+    this.clock = new Clock();
+    this.threshold = this.width / 2;
+    this.leftSide = interpolate(this.dragX, {
+      inputRange: [0, this.width],
+      outputRange: [-this.width, 0],
+      extrapolate: Extrapolate.CLAMP,
+    });
+    this.rightSide = interpolate(this.dragX, {
+      inputRange: [-this.width, 0],
+      outputRange: [0, this.width],
+      extrapolate: Extrapolate.CLAMP,
+    });
+    this.handleGesture = event([
+      {
+        nativeEvent: ({translationX: x, state}) =>
+          block([
+            cond(eq(state, State.ACTIVE), [
+              set(this.dragX, add(this.offsetX, x)),
+              stopClock(this.clock),
+            ]),
+            cond(eq(state, State.END), [
+              cond(
+                and(
+                  greaterThan(this.dragX, 0),
+                  greaterOrEq(this.dragX, this.threshold),
+                ),
+                set(this.swipeDir, 1),
+                cond(
+                  and(
+                    lessThan(this.dragX, 0),
+                    lessOrEq(this.dragX, -this.threshold),
+                  ),
+                  set(this.swipeDir, 0),
+                  set(this.swipeDir, -1),
+                ),
+              ),
+              cond(eq(this.swipeDir, -1), [
+                set(this.dragX, runSpring(this.clock, this.dragX, 0)),
+                set(this.offsetX, 0),
+              ]),
+              cond(eq(this.swipeDir, 1), [
+                set(this.dragX, runSpring(this.clock, this.dragX, this.width)),
+                set(this.offsetX, this.width),
+              ]),
+              cond(eq(this.swipeDir, 0), [
+                set(this.dragX, runSpring(this.clock, this.dragX, -this.width)),
+                set(this.offsetX, -this.width),
+              ]),
+            ]),
+          ]),
+      },
+    ]);
+  }
   delete = async () => await this.props.deleteChore(this.props.item.id);
   resetPos = () => {
     const config = SpringUtils.makeConfigFromBouncinessAndSpeed({
@@ -50,62 +116,19 @@ class ChoreItem extends React.Component {
     this.resetPos();
     this.props.navigation.navigate('AddChores', {id: this.props.item.id});
   };
-  width = Dimensions.get('window').width;
-  dragX = new Value(0);
-  offsetX = new Value(0);
-  swipeDir = new Value(-1);
-  clock = new Clock();
-  threshold = this.width / 2;
-  leftSide = interpolate(this.dragX, {
-    inputRange: [0, this.width],
-    outputRange: [-this.width, 0],
-    extrapolate: Extrapolate.CLAMP,
-  });
-  rightSide = interpolate(this.dragX, {
-    inputRange: [-this.width, 0],
-    outputRange: [0, this.width],
-    extrapolate: Extrapolate.CLAMP,
-  });
-  handleGesture = event([
-    {
-      nativeEvent: ({translationX: x, state}) =>
-        block([
-          cond(eq(state, State.ACTIVE), [
-            set(this.dragX, add(this.offsetX, x)),
-            stopClock(this.clock),
-          ]),
-          cond(eq(state, State.END), [
-            cond(
-              and(
-                greaterThan(this.dragX, 0),
-                greaterOrEq(this.dragX, this.threshold),
-              ),
-              set(this.swipeDir, 1),
-              cond(
-                and(
-                  lessThan(this.dragX, 0),
-                  lessOrEq(this.dragX, -this.threshold),
-                ),
-                set(this.swipeDir, 0),
-                set(this.swipeDir, -1),
-              ),
-            ),
-            cond(eq(this.swipeDir, -1), [
-              set(this.dragX, runSpring(this.clock, this.dragX, 0)),
-              set(this.offsetX, 0),
-            ]),
-            cond(eq(this.swipeDir, 1), [
-              set(this.dragX, runSpring(this.clock, this.dragX, this.width)),
-              set(this.offsetX, this.width),
-            ]),
-            cond(eq(this.swipeDir, 0), [
-              set(this.dragX, runSpring(this.clock, this.dragX, -this.width)),
-              set(this.offsetX, -this.width),
-            ]),
-          ]),
-        ]),
-    },
-  ]);
+  setDone = () => {
+    const {id} = this.props.item;
+    this.resetPos();
+    this.props.setDoneChore(id);
+  };
+  componentDidUpdate() {
+    const {item} = this.props,
+      itemDone = new Value(item.done);
+    call([itemDone], ([done]) => {
+      console.log(this.done);
+      cond(eq(done, 1), set(this.done, 1), set(this.done, 0));
+    });
+  }
   render() {
     const {item} = this.props,
       {width} = this;
@@ -137,6 +160,7 @@ class ChoreItem extends React.Component {
                 flex: 1,
                 width,
                 transform: [{translateX: this.dragX}],
+                backgroundColor: this.doneInter
               }}>
               <View style={{flexDirection: 'row', alignItems: 'center'}}>
                 <Text
@@ -181,6 +205,7 @@ class ChoreItem extends React.Component {
                 },
               ]}>
               <RectButton
+                onPress={this.setDone}
                 containerStyle={{
                   flex: 1,
                 }}
