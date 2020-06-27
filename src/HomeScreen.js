@@ -46,8 +46,9 @@ export default class HomeScreen extends React.Component {
         title: "Well, that's bad..",
         duration: 0,
       });
+    return this.state.chores[id - 1].done;
   };
-  componentDidMount = async () => this.checkScreenState();
+  componentDidMount = () => this.checkScreenState();
   renderItem = ({item}) => (
     <ChoreItem
       deleteChore={this.deleteChore}
@@ -59,7 +60,7 @@ export default class HomeScreen extends React.Component {
   checkScreenState = () =>
     this.props.navigation.addListener(
       'didFocus',
-      async () => await this.getChores(),
+      () => this.getChores(),
     );
   render() {
     const {chores} = this.state;

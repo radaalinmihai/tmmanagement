@@ -29,28 +29,32 @@ import Animated, {
   lessThan,
   spring,
   SpringUtils,
-  call,
 } from 'react-native-reanimated';
 import runSpring from './reanimated/spring';
+import {interpolateColors} from './reanimated/interpolateColors';
 
 class ChoreItem extends React.Component {
   constructor(props) {
     super(props);
-    // Reanimated values for swipeable
+    this.state = {
+      done: this.props.item.done,
+    };
+    // Background color interpolations
     this.done = new Value(0);
-    // Mda, deci tre sa astept sa scoata astia interpolateColors ca sa pot face o interpolare de culori
-    // Mda..
-    this.doneInter = interpolate(this.done, {
-      inputRange: [0, 1],
-      outputRange: ['rgb(255, 255, 255)', 'rgb(17, 99, 21)'],
-      extrapolate: Extrapolate.CLAMP,
-    });
+    this.doneInter = interpolateColors(this.done, [0, 1], ['#fff', '#00DC7D']);
+    this.titleColor = interpolateColors(
+      this.done,
+      [0, 1],
+      ['#000000', '#ffffff'],
+    );
+    // Drag data
     this.width = Dimensions.get('window').width;
     this.dragX = new Value(0);
     this.offsetX = new Value(0);
     this.swipeDir = new Value(-1);
     this.clock = new Clock();
     this.threshold = this.width / 2;
+    // Limits
     this.leftSide = interpolate(this.dragX, {
       inputRange: [0, this.width],
       outputRange: [-this.width, 0],
@@ -119,15 +123,22 @@ class ChoreItem extends React.Component {
   setDone = () => {
     const {id} = this.props.item;
     this.resetPos();
-    this.props.setDoneChore(id);
-  };
-  componentDidUpdate() {
-    const {item} = this.props,
-      itemDone = new Value(item.done);
-    call([itemDone], ([done]) => {
-      console.log(this.done);
-      cond(eq(done, 1), set(this.done, 1), set(this.done, 0));
+    let done = this.props.setDoneChore(id);
+    this.setState({
+      done,
     });
+  };
+  checkDone = () => {
+    const {item} = this.props,
+      itemDone = item.done;
+    if (itemDone === true) this.done.setValue(1);
+    else this.done.setValue(0);
+  };
+  componentDidMount() {
+    this.checkDone();
+  }
+  componentDidUpdate() {
+    this.checkDone();
   }
   render() {
     const {item} = this.props,
@@ -160,18 +171,18 @@ class ChoreItem extends React.Component {
                 flex: 1,
                 width,
                 transform: [{translateX: this.dragX}],
-                backgroundColor: this.doneInter
+                backgroundColor: this.doneInter,
               }}>
               <View style={{flexDirection: 'row', alignItems: 'center'}}>
-                <Text
+                <Animated.Text
                   style={{
                     fontSize: 17,
                     fontFamily: 'Roboto-Regular',
                     letterSpacing: 1.3,
-                    color: 'black',
+                    color: this.titleColor,
                   }}>
                   {item.title}
-                </Text>
+                </Animated.Text>
                 <Entypo name="dot-single" size={17} style={{color: 'black'}} />
                 <Text
                   style={{
