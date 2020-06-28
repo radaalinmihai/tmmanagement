@@ -42,10 +42,20 @@ class ChoreItem extends React.Component {
     // Background color interpolations
     this.done = new Value(0);
     this.doneInter = interpolateColors(this.done, [0, 1], ['#fff', '#00DC7D']);
-    this.titleColor = interpolateColors(
+    this.textColor = interpolateColors(
       this.done,
       [0, 1],
       ['#000000', '#ffffff'],
+    );
+    this.descriptionColor = interpolateColors(
+      this.done,
+      [0, 1],
+      ['#939598', '#fff'],
+    );
+    this.checkButtonColor = interpolateColors(
+      this.done,
+      [0, 1],
+      ['#35D073', '#BC0022'],
     );
     // Drag data
     this.width = Dimensions.get('window').width;
@@ -114,16 +124,17 @@ class ChoreItem extends React.Component {
       toValue: 0,
       ...SpringUtils.makeDefaultConfig(),
     });
+    this.swipeDir.setValue(-1);
     spring(this.dragX, config).start();
   };
   edit = () => {
     this.resetPos();
     this.props.navigation.navigate('AddChores', {id: this.props.item.id});
   };
-  setDone = () => {
+  setDone = async () => {
     const {id} = this.props.item;
     this.resetPos();
-    let done = this.props.setDoneChore(id);
+    let done = await this.props.setDoneChore(id);
     this.setState({
       done,
     });
@@ -142,6 +153,7 @@ class ChoreItem extends React.Component {
   }
   render() {
     const {item} = this.props,
+      {done} = this.state,
       {width} = this;
     return (
       <View style={{flex: 1}}>
@@ -179,29 +191,31 @@ class ChoreItem extends React.Component {
                     fontSize: 17,
                     fontFamily: 'Roboto-Regular',
                     letterSpacing: 1.3,
-                    color: this.titleColor,
+                    color: this.textColor,
                   }}>
                   {item.title}
                 </Animated.Text>
-                <Entypo name="dot-single" size={17} style={{color: 'black'}} />
-                <Text
+                <Animated.Text style={{color: this.textColor}}>
+                  <Entypo name="dot-single" size={17} />
+                </Animated.Text>
+                <Animated.Text
                   style={{
                     fontSize: 17,
                     fontFamily: 'Roboto-Regular',
-                    color: 'black',
+                    color: this.textColor,
                   }}>
                   {moment(this.props.item.time).format('HH:mm')}
-                </Text>
+                </Animated.Text>
               </View>
-              <Text
+              <Animated.Text
                 style={{
                   fontFamily: 'Roboto-Italic',
                   fontSize: 16,
                   marginLeft: 3,
-                  color: '#939598',
+                  color: this.descriptionColor,
                 }}>
                 {item.description}
-              </Text>
+              </Animated.Text>
             </Animated.View>
             <Animated.View
               style={[
@@ -217,17 +231,26 @@ class ChoreItem extends React.Component {
               ]}>
               <RectButton
                 onPress={this.setDone}
-                containerStyle={{
-                  flex: 1,
-                }}
                 style={{
                   flex: 1,
                   alignItems: 'center',
                   justifyContent: 'center',
-                  backgroundColor: '#35D073',
                   width: '100%',
                 }}>
-                <MaterialIcons name="done-all" size={38} color="white" />
+                <Animated.View
+                  style={{
+                    backgroundColor: this.checkButtonColor,
+                    flex: 1,
+                    width: '100%',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                  <MaterialIcons
+                    name={!done ? 'done-all' : 'close'}
+                    size={38}
+                    color="white"
+                  />
+                </Animated.View>
               </RectButton>
               <RectButton
                 onPress={this.edit}

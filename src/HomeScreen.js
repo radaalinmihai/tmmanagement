@@ -6,6 +6,20 @@ import ChoreItem from './choreItem';
 import {RNToasty} from 'react-native-toasty';
 import {CancelNotification} from './services/LocalPushController';
 import {FlatList} from 'react-native-gesture-handler';
+import moment from 'moment';
+import BackgroundJob from 'react-native-background-job';
+
+BackgroundJob.register({
+  jobKey: 'midnightFinder',
+  job: () => {
+    (async () => {
+      const chores = await getItem('@chores');
+      for(let i = 0; i < chores.length; i++)
+        chores[i].done = false;
+      await storeItem('@chores', chores);
+    })();
+  }
+});
 
 export default class HomeScreen extends React.Component {
   state = {
@@ -48,7 +62,31 @@ export default class HomeScreen extends React.Component {
       });
     return this.state.chores[id - 1].done;
   };
-  componentDidMount = () => this.checkScreenState();
+  setJobForFuture = () => {
+    const currentTime = moment(),
+      midnight = moment({
+        hours: 24,
+        minutes: 0,
+        seconds: 0,
+        milliseconds: 0,
+      }),
+      target = midnight.diff(currentTime);
+    console.log(target);
+    BackgroundJob.schedule({
+      jobKey: 'midnightFinder',
+      notificationTitle: 'Clearing the chores for today',
+      notificationText: 'Processing...',
+      period: target,
+      allowExecutionInForeground: true
+    });
+    /* BackgroundJob.cancel({jobKey: 'midnightFinder'})
+      .then(() => console.log('YESS'))
+      .catch(err => console.warn(err)); */
+  };
+  componentDidMount = () => {
+    this.setJobForFuture();
+    this.checkScreenState();
+  }
   renderItem = ({item}) => (
     <ChoreItem
       deleteChore={this.deleteChore}
